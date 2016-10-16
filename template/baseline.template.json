@@ -1,0 +1,309 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+
+  "Description": "Parse Hosting components (ELB, Docker Swarm Mode)",
+
+  "Parameters": {
+    "Region": {
+      "Description": "AWS Region to deploy Parse components",
+      "Type": "String",
+      "Default": "ap-northeast-1",
+      "AllowedValues": [
+        "us-east-1",
+        "us-west-2",
+        "us-west-1",
+        "eu-west-1",
+        "eu-central-1",
+        "ap-northeast-1",
+        "ap-northeast-2",
+        "ap-southeast-1",
+        "ap-southeast-2",
+        "ap-south-1",
+        "sa-east-1",
+        "cn-north-1"
+      ]
+    },
+
+    "Environment": {
+      "Description": "Deployment environment",
+      "Type": "String",
+      "Default": "dev"
+    },
+
+    "KeyName": {
+      "Description": "Name of an existing EC2 KeyPair to enable SSH access to the instances",
+      "Type": "AWS::EC2::KeyPair::KeyName",
+      "ConstraintDescription": "Must be the name of an existing EC2 KeyPair."
+    },
+
+    "EC2DockerEngineImageId": {
+      "Description": "Docker Engine Image Id",
+      "Type": "AWS::EC2::Image::Id",
+      "ConstraintDescription" : "Must be a valid EC2 AMI."
+    },
+
+    "EC2LaunchSubnetGroup": {
+      "Description": "Docker Engine Subnet Group",
+      "Type": "List<AWS::EC2::Subnet::Id>",
+      "ConstraintDescription": "Select subnet to launch cluster into (Up to 3)."
+    },
+
+    "EC2LaunchSecurityGroup": {
+      "Description": "Docker Engine Security Group",
+      "Type": "List<AWS::EC2::SecurityGroup::Id>",
+      "ConstraintDescription": "Select security group to launch cluster into."
+    },
+
+    "EC2InstanceProfile": {
+      "Description": "Docker Engine Instance Profile",
+      "Type": "String",
+      "ConstraintDescription" : "Must be a valid IAM Role for EC2 instance."
+    },
+
+    "EC2InstanceType": {
+      "Description": "Docker Engine instance type",
+      "Type": "String",
+      "Default": "t2.micro",
+      "AllowedValues": [
+        "t2.micro",
+        "m4.large",
+        "m4.xlarge"
+      ],
+      "ConstraintDescription" : "Must be a valid EC2 instance type."
+    }
+  },
+
+  "Conditions" : {
+  },
+
+  "Resources" : {
+    "APILoadBalancer" : {
+      "Type" : "AWS::ElasticLoadBalancing::LoadBalancer",
+      "Properties": {
+        "CrossZone": "true",
+        "AvailabilityZones": { "Fn::GetAZs" : "" },
+        "Listeners": [
+          { "LoadBalancerPort": "80", "InstancePort": "8080", "Protocol": "HTTP" }
+        ],
+        "HealthCheck": {
+          "Target": "HTTP:8080/_ah/health",
+          "HealthyThreshold": "2",
+          "UnhealthyThreshold": "5",
+          "Interval": "10",
+          "Timeout": "5"
+        },
+        "SecurityGroups": [
+          { "Fn::GetAtt": [ "PublicAPISecurityGroup", "GroupId" ] }
+        ],
+        "Instances": [
+        ],
+        "Tags": [
+          {
+            "Key": "Env",
+            "Value": { "Ref": "Environment" }
+          }
+        ]
+      }
+    },
+
+    "DockerSwarmManager001": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "BlockDeviceMappings": [
+        ],
+        "IamInstanceProfile": { "Ref": "EC2InstanceProfile" },
+        "ImageId": { "Ref": "EC2DockerEngineImageId" },
+        "InstanceInitiatedShutdownBehavior": "terminate",
+        "InstanceType": { "Ref": "EC2InstanceType" },
+        "KeyName": { "Ref": "KeyName" },
+        "SecurityGroupIds": { "Ref": "EC2LaunchSecurityGroup" },
+        "SubnetId": {
+          "Fn::Select": [ "0", { "Ref": "EC2LaunchSubnetGroup" } ]
+        },
+        "Tags": [
+          {
+            "Key": "Env",
+            "Value": { "Ref": "Environment" }
+          },
+          {
+            "Key": "Name",
+            "Value": "Manager001"
+          },
+          {
+            "Key": "Engine",
+            "Value": "Docker"
+          },
+          {
+            "Key": "Swarm",
+            "Value": "Manager"
+          },
+          {
+            "Key": "Type",
+            "Value": "Database"
+          }
+        ]
+      }
+    },
+
+    "DockerSwarmManager002": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "BlockDeviceMappings": [
+        ],
+        "IamInstanceProfile": { "Ref": "EC2InstanceProfile" },
+        "ImageId": { "Ref": "EC2DockerEngineImageId" },
+        "InstanceInitiatedShutdownBehavior": "terminate",
+        "InstanceType": { "Ref": "EC2InstanceType" },
+        "KeyName": { "Ref": "KeyName" },
+        "SecurityGroupIds": { "Ref": "EC2LaunchSecurityGroup" },
+        "SubnetId": {
+          "Fn::Select": [ "1", { "Ref": "EC2LaunchSubnetGroup" } ]
+        },
+        "Tags": [
+          {
+            "Key": "Env",
+            "Value": { "Ref": "Environment" }
+          },
+          {
+            "Key": "Name",
+            "Value": "Manager002"
+          },
+          {
+            "Key": "Engine",
+            "Value": "Docker"
+          },
+          {
+            "Key": "Swarm",
+            "Value": "Manager"
+          },
+          {
+            "Key": "Type",
+            "Value": "Database"
+          }
+        ]
+      }
+    },
+
+    "DockerSwarmManager003": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "BlockDeviceMappings": [
+        ],
+        "IamInstanceProfile": { "Ref": "EC2InstanceProfile" },
+        "ImageId": { "Ref": "EC2DockerEngineImageId" },
+        "InstanceInitiatedShutdownBehavior": "terminate",
+        "InstanceType": { "Ref": "EC2InstanceType" },
+        "KeyName": { "Ref": "KeyName" },
+        "SecurityGroupIds": { "Ref": "EC2LaunchSecurityGroup" },
+        "SubnetId": {
+          "Fn::Select": [ "2", { "Ref": "EC2LaunchSubnetGroup" } ]
+        },
+        "Tags": [
+          {
+            "Key": "Env",
+            "Value": { "Ref": "Environment" }
+          },
+          {
+            "Key": "Name",
+            "Value": "Manager003"
+          },
+          {
+            "Key": "Engine",
+            "Value": "Docker"
+          },
+          {
+            "Key": "Swarm",
+            "Value": "Manager"
+          },
+          {
+            "Key": "Type",
+            "Value": "Database"
+          }
+        ]
+      }
+    },
+
+    "PublicAPISecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Allowed Public Ingress API access policy",
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "80",
+            "ToPort": "80",
+            "CidrIp": "0.0.0.0/0"
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Env",
+            "Value": { "Ref": "Environment" }
+          }
+        ]
+      }
+    },
+
+    "PrivateAPISecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Allowed Ingress API access policy",
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "8080",
+            "ToPort": "8080",
+            "SourceSecurityGroupName": "default"
+          },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "8080",
+            "ToPort": "8080",
+            "SourceSecurityGroupOwnerId": {
+              "Fn::GetAtt": [ "APILoadBalancer", "SourceSecurityGroup.OwnerAlias" ]
+            },
+            "SourceSecurityGroupName" : {
+              "Fn::GetAtt": [ "APILoadBalancer", "SourceSecurityGroup.GroupName" ]
+            }
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Env",
+            "Value": { "Ref": "Environment" }
+          }
+        ]
+      }
+    }
+  },
+
+  "Outputs": {
+    "ParseAPIEndpoint": {
+      "Description": "Public API endpoint",
+      "Value": {
+        "Fn::Join": [ "", [ "http://", { "Fn::GetAtt" : [ "APILoadBalancer", "DNSName" ] } ] ]
+      }
+    },
+
+    "Manager001": {
+      "Description": "Created Instance Network Info",
+      "Value": {
+        "Fn::GetAtt": [ "DockerSwarmManager001", "PublicIp" ]
+      }
+    },
+
+    "Manager002": {
+      "Description": "Created Instance Network Info",
+      "Value": {
+        "Fn::GetAtt": [ "DockerSwarmManager002", "PublicIp" ]
+      }
+    },
+
+    "Manager003": {
+      "Description": "Created Instance Network Info",
+      "Value": {
+        "Fn::GetAtt": [ "DockerSwarmManager003", "PublicIp" ]
+      }
+    },
+  }
+}
