@@ -127,7 +127,7 @@
           },
           {
             "Key": "Name",
-            "Value": "Manager001"
+            "Value": "manager-001"
           },
           {
             "Key": "Engine",
@@ -166,7 +166,7 @@
           },
           {
             "Key": "Name",
-            "Value": "Manager002"
+            "Value": "manager-002"
           },
           {
             "Key": "Engine",
@@ -205,7 +205,7 @@
           },
           {
             "Key": "Name",
-            "Value": "Manager003"
+            "Value": "manager-003"
           },
           {
             "Key": "Engine",
@@ -279,31 +279,73 @@
 
   "Outputs": {
     "ParseAPIEndpoint": {
-      "Description": "Public API endpoint",
+      "Description": "APIEndpoint",
       "Value": {
         "Fn::Join": [ "", [ "http://", { "Fn::GetAtt" : [ "APILoadBalancer", "DNSName" ] } ] ]
       }
     },
 
-    "Manager001": {
-      "Description": "Created Instance Network Info",
+    "NameManager001": {
+      "Description": "Manager001",
+      "Value": {
+        "Fn::Join": [ "-", [ "manager-001", { "Ref": "DockerSwarmManager001" } ] ]
+      }
+    },
+
+    "PublicIpManager001": {
+      "Description": "Manager001",
       "Value": {
         "Fn::GetAtt": [ "DockerSwarmManager001", "PublicIp" ]
       }
     },
 
-    "Manager002": {
-      "Description": "Created Instance Network Info",
+    "PrivateIpManager001": {
+      "Description": "Manager001",
+      "Value": {
+        "Fn::GetAtt": [ "DockerSwarmManager001", "PrivateIp" ]
+      }
+    },
+
+    "NameManager002": {
+      "Description": "Manager002",
+      "Value": {
+        "Fn::Join": [ "-", [ "manager-002", { "Ref": "DockerSwarmManager002" } ] ]
+      }
+    },
+
+    "PublicIpManager002": {
+      "Description": "Manager002",
       "Value": {
         "Fn::GetAtt": [ "DockerSwarmManager002", "PublicIp" ]
       }
     },
 
-    "Manager003": {
-      "Description": "Created Instance Network Info",
+    "PrivateIpManager002": {
+      "Description": "Manager002",
+      "Value": {
+        "Fn::GetAtt": [ "DockerSwarmManager002", "PrivateIp" ]
+      }
+    },
+
+    "NameManager003": {
+      "Description": "Manager003",
+      "Value": {
+        "Fn::Join": [ "-", [ "manager-003", { "Ref": "DockerSwarmManager003" } ] ]
+      }
+    },
+
+    "PublicIpManager003": {
+      "Description": "Manager003",
       "Value": {
         "Fn::GetAtt": [ "DockerSwarmManager003", "PublicIp" ]
       }
     },
+
+    "PrivateIpManager003": {
+      "Description": "Manager003",
+      "Value": {
+        "Fn::GetAtt": [ "DockerSwarmManager003", "PrivateIp" ]
+      }
+    }
   }
 }
