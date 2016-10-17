@@ -1,0 +1,25 @@
+{
+  "name": "parse-cloudformation",
+  "version": "1.0.0",
+  "description": "Swiss Army knife for DevOps",
+  "scripts": {
+    "install-vendor": "gulp vendor"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/poddworks/parse-cloudformation.git"
+  },
+  "author": "Jeffrey Jen <yihungjen@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/poddworks/parse-cloudformation/issues"
+  },
+  "homepage": "https://github.com/poddworks/parse-cloudformation#readme",
+  "devDependencies": {
+    "del": "^2.2.2",
+    "gulp": "^3.9.1",
+    "gulp-chmod": "^1.3.0",
+    "request": "^2.75.0",
+    "vinyl-source-stream": "^1.1.0"
+  }
+}
