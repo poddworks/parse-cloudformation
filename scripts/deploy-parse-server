@@ -1,0 +1,65 @@
+#!/bin/bash
+set -e
+
+NETWORK=
+while [ $# -gt 0 ]; do
+    case ${1} in
+        --network)
+            shift 1; NETWORK=$1; shift 1 ;;
+        *)
+            echo "Refuse to process $@; Unexpected arguments/flag"
+            exit 1 ;;
+    esac
+done
+
+# Source environment file for configuration
+source .env
+
+docker service create --name parse-express --network ${NETWORK} --mode global --publish 8080:8080 \
+    --env ADVERTISE_CLIENT_URL="${ADVERTISE_CLIENT_URL}" \
+    --env PUBLIC_ENDPOINT="${PUBLIC_ENDPOINT}" \
+    --env APP_ID="${APP_ID}" \
+    --env APP_NAME="${APP_NAME}" \
+    --env DATABASE_URI="${DATABASE_URI}" \
+    --env MASTER_KEY="${MASTER_KEY}" \
+    --env ENBALE_JSON_LOG="${ENBALE_JSON_LOG}" \
+    --env LOG_LEVEL="${LOG_LEVEL}" \
+    --env OAUTH_TWITTER_KEY="${OAUTH_TWITTER_KEY}" \
+    --env OAUTH_TWITTER_SECRET="${OAUTH_TWITTER_SECRET}" \
+    --env OAUTH_FACEBOOK_APP_ID="${OAUTH_FACEBOOK_APP_ID}" \
+    --env EMAIL_FROM_ADDRESS="${EMAIL_FROM_ADDRESS}" \
+    --env EMAIL_DOMAIN="${EMAIL_DOMAIN}" \
+    --env EMAIL_API_KEY="${EMAIL_API_KEY}" \
+    --env EMAIL_INVALID_LINK_PAGE="${EMAIL_INVALID_LINK_PAGE}" \
+    --env EMAIL_VERIFY_SUCCESS_PAGE="${EMAIL_VERIFY_SUCCESS_PAGE}" \
+    --env EMAIL_PASSWORD_SETUP_PAGE="${EMAIL_PASSWORD_SETUP_PAGE}" \
+    --env EMAIL_PASSWORD_RESET_SUCCESS_PAGE="${EMAIL_PASSWORD_RESET_SUCCESS_PAGE}" \
+    --env EMAIL_PASSWORD_RESET_SUBJECT="${EMAIL_PASSWORD_RESET_SUBJECT}" \
+    --env EMAIL_PASSWORD_RESET_TEMPLATE="${EMAIL_PASSWORD_RESET_TEMPLATE}" \
+    --env EMAIL_PASSWORD_RESET_TEXT="${EMAIL_PASSWORD_RESET_TEXT}" \
+    --env EMAIL_VERIFY_SUBJECT="${EMAIL_VERIFY_SUBJECT}" \
+    --env EMAIL_VERIFY_TEMPLATE="${EMAIL_VERIFY_TEMPLATE}" \
+    --env EMAIL_VERIFY_TEXT="${EMAIL_VERIFY_TEXT}" \
+    --env PUSH_GCM_SENDER_ID="${PUSH_GCM_SENDER_ID}" \
+    --env PUSH_GCM_API_KEY="${PUSH_GCM_API_KEY}" \
+    --env PUSH_APNS_CERT="${PUSH_APNS_CERT}" \
+    --env PUSH_APNS_KEY="${PUSH_APNS_KEY}" \
+    --env PUSH_APNS_BUNDLE_ID="${PUSH_APNS_BUNDLE_ID}" \
+    --env PUSH_APNS_ENV="${PUSH_APNS_ENV}" \
+    --env PUSH_FCM_ENDPOINT="${PUSH_FCM_ENDPOINT}" \
+    --env PUSH_FCM_API_KEY="${PUSH_FCM_API_KEY}" \
+    --env PUSH_LIGHTSPEED_ENDPOINT="${PUSH_LIGHTSPEED_ENDPOINT}" \
+    --env PUSH_LIGHTSPEED_API_KEY="${PUSH_LIGHTSPEED_API_KEY}" \
+    --env ENABLE_LOCAL_PUSH="${ENABLE_LOCAL_PUSH}" \
+    --env STORAGE_BUCKET_URI="${STORAGE_BUCKET_URI}" \
+    --env STORAGE_HOSTNAME="${STORAGE_HOSTNAME}" \
+    --env EMAIL_TASK_ADAPTER="${EMAIL_TASK_ADAPTER}" \
+    --env PUSH_TASK_ADAPTER="${PUSH_TASK_ADAPTER}" \
+    --env STORAGE_ADAPTER="${STORAGE_ADAPTER}" \
+    --env TASK_ENDPOINT="${TASK_ENDPOINT}" \
+    --env GATEWAY_AUDIENCE="${GATEWAY_AUDIENCE}" \
+    --env GATEWAY_ISSUER="${GATEWAY_ISSUER}" \
+    --env GATEWAY_SUBJECT="${GATEWAY_SUBJECT}" \
+    --env WORKER_NUM="${WORKER_NUM}" \
+    --env PORT="${PORT}" \
+    poddworks/parse
