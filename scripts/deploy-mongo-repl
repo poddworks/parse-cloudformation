@@ -15,6 +15,10 @@ while [ $# -gt 0 ]; do
             exit 0 ;;
 
         go)
+            networkId=$(docker network ls -f name=${NETWORK} -q)
+            if [ -z ${networkId} ]; then
+                docker network create --driver overlay --subnet 10.0.0.0/16 ${NETWORK} || true;
+            fi
             docker service create --name mongo-1 --replicas 1 --network ${NETWORK} mongo:3.2.6 --replSet ${REPL_SET}
             docker service create --name mongo-2 --replicas 1 --network ${NETWORK} mongo:3.2.6 --replSet ${REPL_SET}
             docker service create --name mongo-3 --replicas 1 --network ${NETWORK} mongo:3.2.6 --replSet ${REPL_SET}
@@ -42,3 +46,7 @@ while [ $# -gt 0 ]; do
             exit 1 ;;
     esac
 done
+
+echo "Please specify an action!"
+echo "deploy-mongo-repl --network <overlay_network> --replSet <replica_set_name> [go|setup|rm|help]"
+exit 1

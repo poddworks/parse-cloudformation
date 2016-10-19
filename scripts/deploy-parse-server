@@ -12,6 +12,10 @@ while [ $# -gt 0 ]; do
             exit 0 ;;
 
         go)
+            networkId=$(docker network ls -f name=${NETWORK} -q)
+            if [ -z ${networkId} ]; then
+                docker network create --driver overlay --subnet 10.0.0.0/16 ${NETWORK} || true;
+            fi
             # Source environment file for configuration
             source .env
             # Incredibly difficult setup for parse-express
@@ -77,3 +81,6 @@ while [ $# -gt 0 ]; do
     esac
 done
 
+echo "Please specify an action!"
+echo "deploy-parse-server --network <overlay_network> [-h|--help] [go|rm|help]"
+exit 1
