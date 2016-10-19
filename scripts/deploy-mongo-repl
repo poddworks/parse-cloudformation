@@ -38,6 +38,7 @@ while [ $# -gt 0 ]; do
 
         *)
             echo "Refuse to process $@; Unexpected arguments/flag"
+            echo "deploy-mongo-repl --network <overlay_network> --replSet <replica_set_name> [go|setup|rm|help]"
             exit 1 ;;
     esac
 done

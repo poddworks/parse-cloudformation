@@ -72,6 +72,7 @@ while [ $# -gt 0 ]; do
 
         *)
             echo "Refuse to process $@; Unexpected arguments/flag"
+            echo "deploy-parse-server --network <overlay_network> [-h|--help] [go|rm|help]"
             exit 1 ;;
     esac
 done
