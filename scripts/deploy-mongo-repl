@@ -7,30 +7,37 @@ while [ $# -gt 0 ]; do
     case ${1} in
         --network)
             shift 1; NETWORK=$1; shift 1 ;;
-        --replcaSet)
+        --replSet)
             shift 1; REPL_SET=$1; shift 1 ;;
+
+        rm)
+            docker service rm mongo-1 mongo-2 mongo-3
+            exit 0 ;;
+
+        go)
+            docker service create --name mongo-1 --replicas 1 --network ${NETWORK} mongo:3.2.6 --replSet ${REPL_SET}
+            docker service create --name mongo-2 --replicas 1 --network ${NETWORK} mongo:3.2.6 --replSet ${REPL_SET}
+            docker service create --name mongo-3 --replicas 1 --network ${NETWORK} mongo:3.2.6 --replSet ${REPL_SET}
+            exit 0 ;;
+
+        setup)
+            # Replica command for a three node primary-secondary-secondary setup
+            replSetupCommand="rs.initiate({ \"_id\": \"${REPL_SET}\", \"version\": 1, \"members\": [ { \"_id\": 0, \"host\": \"mongo-1:27017\" }, { \"_id\": 1, \"host\": \"mongo-2:27017\" }, { \"_id\": 2, \"host\": \"mongo-3:27017\" } ] })"
+            # Spawn onetime service
+            docker service create --name mongo-repl-onetime --restart-condition none --replicas 1 --network ${NETWORK} mongo:3.2.6 mongo mongodb://mongo-1:27017/staging --eval "${replSetupCommand}"
+            # Wait for it to complete, by sleepging
+            # TODO: how do we know it is ready?
+            sleep 5
+            # Remove the onetime service
+            docker service rm mongo-repl-onetime
+            exit 0 ;;
+
+        -h|--help|help)
+            echo "deploy-mongo-repl --network <overlay_network> --replSet <replica_set_name> [go|setup|rm|help]"
+            exit 0 ;;
+
         *)
             echo "Refuse to process $@; Unexpected arguments/flag"
             exit 1 ;;
     esac
 done
-
-# Replica command for a three node primary-secondary-secondary setup
-replSetupCommand="rs.initiate({ \"_id\": \"${REPL_SET}\", \"version\": 1, \"members\": [ { \"_id\": 0, \"host\": \"mongo-1:27017\" }, { \"_id\": 1, \"host\": \"mongo-2:27017\" }, { \"_id\": 2, \"host\": \"mongo-3:27017\" } ] })"
-
-# FIXME: how to setup restart condition so we don't mess up
-docker service create --name mongo-1 --replicas 1 --network ${NETWORK} mongo:3.2.6 --replSet ${REPL_SET}
-docker service create --name mongo-2 --replicas 1 --network ${NETWORK} mongo:3.2.6 --replSet ${REPL_SET}
-docker service create --name mongo-3 --replicas 1 --network ${NETWORK} mongo:3.2.6 --replSet ${REPL_SET}
-
-# Stupid sleep for 10s
-sleep 10
-
-# Spawn onetime service
-docker service create --name mongo-repl-onetime --restart-condition none --replicas 1 --network ${NETWORK} mongo:3.2.6 mongo mongodb://mongo-1:27017/staging --eval "${replSetupCommand}"
-
-# Stupid sleep for 3s
-sleep 3
-
-# Remove the onetime service
-docker service rm mongo-repl-onetime
