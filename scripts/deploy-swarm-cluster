@@ -1,0 +1,53 @@
+#!/bin/bash
+set -e
+
+CERT=
+NETWORK=
+while [ $# -gt 0 ]; do
+    case ${1} in
+        --cert)
+            shift 1; CERT=$1; shift 1 ;;
+
+        --network)
+            shift 1; NETWORK=$1; shift 1 ;;
+
+        go)
+            shift 1; NODES=$@;
+            if [ -z ${CERT} ]; then
+                echo "SSH private key must be specified"
+                exit 1
+            fi
+
+            machine --cert ${CERT} tls gen-cert-install ${NODES}
+
+            args=
+            for node in ${NODES}; do
+                args="${args} --manager ${node}"
+            done
+            machine create swarm ${args}
+
+            if [ -z ${NETWORK} ]; then
+                true
+            else
+                eval $(machine env ${NODES[0]})
+                networkId=$(docker network ls -f name=${NETWORK} -q)
+                if [ -z ${networkId} ]; then
+                    docker network create --driver overlay --subnet 10.0.0.0/16 ${NETWORK} || true;
+                fi
+            fi
+            exit 0 ;;
+
+        -h|--help|help)
+            echo "deploy-swarm-cluster --network <overlay_network> [go|help] [node ...]"
+            exit 0 ;;
+
+        *)
+            echo "Refuse to process $@; Unexpected arguments/flag"
+            echo "deploy-swarm-cluster --network <overlay_network> [go|help] [node ...]"
+            exit 1 ;;
+    esac
+done
+
+echo "Please specify an action!"
+echo "deploy-swarm-cluster --network <overlay_network> [go|help] [node...]"
+exit 1
