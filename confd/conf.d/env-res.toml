@@ -19,6 +19,7 @@ keys = [
     "/email_verify_html_template",
     "/email_verify_subject",
     "/email_verify_txt_template",
+    "/enable_local_push",
     "/gateway_audience",
     "/gateway_issuer",
     "/gateway_subject",
