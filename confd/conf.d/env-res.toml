@@ -1,6 +1,6 @@
 [template]
 src = "env.tmpl"
-dest = ".env"
+dest = "scripts/.env"
 keys = [
     "/advertise_client_url",
     "/app_id",
