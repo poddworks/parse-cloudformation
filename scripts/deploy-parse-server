@@ -21,6 +21,7 @@ while [ $# -gt 0 ]; do
             # Incredibly difficult setup for parse-express
             # TODO: 1.13 will support --env-file, change that when it is available
             docker service create --name parse-express --network ${NETWORK} --mode global --publish 8080:8080 \
+                --env AWS_REGION="${AWS_REGION}" \
                 --env ADVERTISE_CLIENT_URL="${ADVERTISE_CLIENT_URL}" \
                 --env PUBLIC_ENDPOINT="${PUBLIC_ENDPOINT}" \
                 --env APP_ID="${APP_ID}" \
