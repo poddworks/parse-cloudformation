@@ -1,6 +1,32 @@
 #!/bin/bash
 set -e
 
+_build_cluster() {
+    local cert=${1:?"Missing cert"}
+    local network=${2:?"Missing network (overlay)"}
+
+    shift 2
+    local nodes=$@;
+
+    machine --cert ${cert} tls gen-cert-install ${nodes}
+
+    args=
+    for node in ${nodes}; do
+        args="${args} --manager ${node}"
+    done
+    machine create swarm ${args}
+
+    eval $(machine env ${nodes[0]})
+    if [ -z ${network} ]; then
+        true
+    else
+        networkId=$(docker network ls -f name=${network} -q)
+        if [ -z ${networkId} ]; then
+            docker network create --driver overlay --subnet 10.0.0.0/16 ${network} || true;
+        fi
+    fi
+}
+
 CERT=
 NETWORK=
 while [ $# -gt 0 ]; do
@@ -11,43 +37,73 @@ while [ $# -gt 0 ]; do
         --network)
             shift 1; NETWORK=$1; shift 1 ;;
 
-        go)
+        --replSet)
+            shift 1; REPL_SET=$1; shift 1 ;;
+
+        setup)
             shift 1; NODES=$@;
+
             if [ -z ${CERT} ]; then
                 echo "SSH private key must be specified"
                 exit 1
             fi
-
-            machine --cert ${CERT} tls gen-cert-install ${NODES}
-
-            args=
-            for node in ${NODES}; do
-                args="${args} --manager ${node}"
-            done
-            machine create swarm ${args}
-
             if [ -z ${NETWORK} ]; then
-                true
-            else
-                eval $(machine env ${NODES[0]})
-                networkId=$(docker network ls -f name=${NETWORK} -q)
-                if [ -z ${networkId} ]; then
-                    docker network create --driver overlay --subnet 10.0.0.0/16 ${NETWORK} || true;
-                fi
+                echo "A network (overlay) must be specified"
+                exit 1
             fi
+            if [ -z ${#NODES[@]} ]; then
+                echo "You must specify at least one node"
+                exit 1
+            fi
+
+            _build_cluster ${CERT} ${NETWORK} ${NODES}
+
+            exit 0 ;;
+
+        go)
+            shift 1; NODES=$@;
+
+            if [ -z ${CERT} ]; then
+                echo "SSH private key must be specified"
+                exit 1
+            fi
+            if [ -z ${REPL_SET} ]; then
+                echo "ReplicaSet must be specified"
+                exit 1
+            fi
+            if [ -z ${NETWORK} ]; then
+                echo "A network (overlay) must be specified"
+                exit 1
+            fi
+            if [ -z ${#NODES[@]} ]; then
+                echo "You must specify at least one node"
+                exit 1
+            fi
+
+            _build_cluster ${CERT} ${NETWORK} ${NODES}
+
+            ./deploy-mongo-repl --network ${NETWORK} --replSet ${REPL_SET} go
+
+            # FIXME: I should detect that services are ready
+            sleep 10
+
+            ./deploy-mongo-repl --network ${NETWORK} --replSet ${REPL_SET} setup
+
+            ./deploy-parse-server --network ${NETWORK} go
+
             exit 0 ;;
 
         -h|--help|help)
-            echo "deploy-swarm-cluster --network <overlay_network> [go|help] [node ...]"
+            echo "deploy-swarm-cluster --network <overlay_network> --replSet <replica_set_name> [go|setup|help] [node ...]"
             exit 0 ;;
 
         *)
             echo "Refuse to process $@; Unexpected arguments/flag"
-            echo "deploy-swarm-cluster --network <overlay_network> [go|help] [node ...]"
+            echo "deploy-swarm-cluster --network <overlay_network> --replSet <replica_set_name> [go|setup|help] [node ...]"
             exit 1 ;;
     esac
 done
 
 echo "Please specify an action!"
-echo "deploy-swarm-cluster --network <overlay_network> [go|help] [node...]"
+echo "deploy-swarm-cluster --network <overlay_network> --replSet <replica_set_name> [go|setup|help] [node ...]"
 exit 1
