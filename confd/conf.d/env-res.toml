@@ -40,6 +40,7 @@ keys = [
     "/push_lightspeed_api_key",
     "/push_lightspeed_endpoint",
     "/push_task_adapter",
+    "/push_task_adapter_bulk_size",
     "/storage_adapter",
     "/storage_bucket_uri",
     "/storage_hostname",
