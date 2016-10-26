@@ -95,7 +95,15 @@
         "SecurityGroups": [
           { "Fn::GetAtt": [ "PublicAPISecurityGroup", "GroupId" ] }
         ],
+        "DependsOn": [
+            "DockerSwarmManager001",
+            "DockerSwarmManager002",
+            "DockerSwarmManager003"
+        ],
         "Instances": [
+            { "Ref": "DockerSwarmManager001" },
+            { "Ref": "DockerSwarmManager002" },
+            { "Ref": "DockerSwarmManager003" }
         ],
         "Tags": [
           {
@@ -285,67 +293,25 @@
       }
     },
 
-    "NameManager001": {
+    "Manager001": {
       "Description": "Manager001",
       "Value": {
         "Fn::Join": [ "-", [ "manager-001", { "Ref": "DockerSwarmManager001" } ] ]
       }
     },
 
-    "PublicIpManager001": {
-      "Description": "Manager001",
-      "Value": {
-        "Fn::GetAtt": [ "DockerSwarmManager001", "PublicIp" ]
-      }
-    },
-
-    "PrivateIpManager001": {
-      "Description": "Manager001",
-      "Value": {
-        "Fn::GetAtt": [ "DockerSwarmManager001", "PrivateIp" ]
-      }
-    },
-
-    "NameManager002": {
+    "Manager002": {
       "Description": "Manager002",
       "Value": {
         "Fn::Join": [ "-", [ "manager-002", { "Ref": "DockerSwarmManager002" } ] ]
       }
     },
 
-    "PublicIpManager002": {
-      "Description": "Manager002",
-      "Value": {
-        "Fn::GetAtt": [ "DockerSwarmManager002", "PublicIp" ]
-      }
-    },
-
-    "PrivateIpManager002": {
-      "Description": "Manager002",
-      "Value": {
-        "Fn::GetAtt": [ "DockerSwarmManager002", "PrivateIp" ]
-      }
-    },
-
-    "NameManager003": {
+    "Manager003": {
       "Description": "Manager003",
       "Value": {
         "Fn::Join": [ "-", [ "manager-003", { "Ref": "DockerSwarmManager003" } ] ]
       }
     },
-
-    "PublicIpManager003": {
-      "Description": "Manager003",
-      "Value": {
-        "Fn::GetAtt": [ "DockerSwarmManager003", "PublicIp" ]
-      }
-    },
-
-    "PrivateIpManager003": {
-      "Description": "Manager003",
-      "Value": {
-        "Fn::GetAtt": [ "DockerSwarmManager003", "PrivateIp" ]
-      }
-    }
   }
 }
