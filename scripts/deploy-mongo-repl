@@ -1,8 +1,19 @@
 #!/bin/bash
 set -e
 
-NETWORK=
-REPL_SET=
+_wait() {
+    service=${1:?"Must provide a service name"}
+    replicas=${2:?"Must provide expected replicas"}
+    while true do;
+        n=$(docker service inspect ${service} | jq .[0].Spec.Mode.Replicated.Replicas)
+        if [ ${n} = ${replicas} ]; then
+            break
+        else
+            sleep 30
+        fi
+    done
+}
+
 while [ $# -gt 0 ]; do
     case ${1} in
         --network)
@@ -27,6 +38,10 @@ while [ $# -gt 0 ]; do
         setup)
             # Replica command for a three node primary-secondary-secondary setup
             replSetupCommand="rs.initiate({ \"_id\": \"${REPL_SET}\", \"version\": 1, \"members\": [ { \"_id\": 0, \"host\": \"mongo-1:27017\" }, { \"_id\": 1, \"host\": \"mongo-2:27017\" }, { \"_id\": 2, \"host\": \"mongo-3:27017\" } ] })"
+            # Examine mongodb service(s) replica state
+            _wait mongo-1 1
+            _wait mongo-2 1
+            _wait mongo-3 1
             # Spawn onetime service
             docker service create --name mongo-repl-onetime --restart-condition none --replicas 1 --network ${NETWORK} mongo:3.2.6 mongo mongodb://mongo-1:27017/staging --eval "${replSetupCommand}"
             # Wait for it to complete, by sleepging
