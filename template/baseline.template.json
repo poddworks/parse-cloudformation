@@ -51,7 +51,7 @@
     "EC2LaunchSecurityGroup": {
       "Description": "Docker Engine Security Group",
       "Type": "List<AWS::EC2::SecurityGroup::Id>",
-      "ConstraintDescription": "Select security group to launch cluster into."
+      "ConstraintDescription": "Select security group to launch cluster into (Up to 4)."
     },
 
     "EC2InstanceProfile": {
@@ -63,7 +63,7 @@
     "EC2InstanceType": {
       "Description": "Docker Engine instance type",
       "Type": "String",
-      "Default": "t2.micro",
+      "Default": "t2.medium",
       "AllowedValues": [
         "t2.medium",
         "t2.large",
@@ -95,15 +95,7 @@
         "SecurityGroups": [
           { "Fn::GetAtt": [ "PublicAPISecurityGroup", "GroupId" ] }
         ],
-        "DependsOn": [
-            "DockerSwarmManager001",
-            "DockerSwarmManager002",
-            "DockerSwarmManager003"
-        ],
         "Instances": [
-            { "Ref": "DockerSwarmManager001" },
-            { "Ref": "DockerSwarmManager002" },
-            { "Ref": "DockerSwarmManager003" }
         ],
         "Tags": [
           {
@@ -124,7 +116,12 @@
         "InstanceInitiatedShutdownBehavior": "terminate",
         "InstanceType": { "Ref": "EC2InstanceType" },
         "KeyName": { "Ref": "KeyName" },
-        "SecurityGroupIds": { "Ref": "EC2LaunchSecurityGroup" },
+        "SecurityGroupIds": [
+            { "Fn::Select": [ "0", { "Ref": "EC2LaunchSecurityGroup" } ] },
+            { "Fn::Select": [ "1", { "Ref": "EC2LaunchSecurityGroup" } ] },
+            { "Fn::Select": [ "2", { "Ref": "EC2LaunchSecurityGroup" } ] },
+            { "Fn::GetAtt": [ "PrivateAPISecurityGroup", "GroupId" ] }
+        ],
         "SubnetId": {
           "Fn::Select": [ "0", { "Ref": "EC2LaunchSubnetGroup" } ]
         },
@@ -163,7 +160,12 @@
         "InstanceInitiatedShutdownBehavior": "terminate",
         "InstanceType": { "Ref": "EC2InstanceType" },
         "KeyName": { "Ref": "KeyName" },
-        "SecurityGroupIds": { "Ref": "EC2LaunchSecurityGroup" },
+        "SecurityGroupIds": [
+            { "Fn::Select": [ "0", { "Ref": "EC2LaunchSecurityGroup" } ] },
+            { "Fn::Select": [ "1", { "Ref": "EC2LaunchSecurityGroup" } ] },
+            { "Fn::Select": [ "2", { "Ref": "EC2LaunchSecurityGroup" } ] },
+            { "Fn::GetAtt": [ "PrivateAPISecurityGroup", "GroupId" ] }
+        ],
         "SubnetId": {
           "Fn::Select": [ "1", { "Ref": "EC2LaunchSubnetGroup" } ]
         },
@@ -202,7 +204,12 @@
         "InstanceInitiatedShutdownBehavior": "terminate",
         "InstanceType": { "Ref": "EC2InstanceType" },
         "KeyName": { "Ref": "KeyName" },
-        "SecurityGroupIds": { "Ref": "EC2LaunchSecurityGroup" },
+        "SecurityGroupIds": [
+            { "Fn::Select": [ "0", { "Ref": "EC2LaunchSecurityGroup" } ] },
+            { "Fn::Select": [ "1", { "Ref": "EC2LaunchSecurityGroup" } ] },
+            { "Fn::Select": [ "2", { "Ref": "EC2LaunchSecurityGroup" } ] },
+            { "Fn::GetAtt": [ "PrivateAPISecurityGroup", "GroupId" ] }
+        ],
         "SubnetId": {
           "Fn::Select": [ "2", { "Ref": "EC2LaunchSubnetGroup" } ]
         },
@@ -261,7 +268,7 @@
             "IpProtocol": "tcp",
             "FromPort": "8080",
             "ToPort": "8080",
-            "SourceSecurityGroupName": "default"
+            "SourceSecurityGroupName": "docker-machine"
           },
           {
             "IpProtocol": "tcp",
@@ -312,6 +319,6 @@
       "Value": {
         "Fn::Join": [ "-", [ "manager-003", { "Ref": "DockerSwarmManager003" } ] ]
       }
-    },
+    }
   }
 }

@@ -1,10 +1,13 @@
-vpc_id="{{ getv "/vpc_id" }}"
-stack_name="{{ getv "/stack_name" }}"
-template_url="{{ getv "/template_url" }}"
-region="{{ getv "/region" }}"
-environment="{{ getv "/environment" }}"
-key_name="{{ getv "/key_name" }}"
-ami_id="{{ getv "/ami_id" }}"
-subnet_ids="{{ getv "/subnet_ids" }}
-ec2_role="{{ getv "/ec2_role" }}
-ec2_type="{{ getv "/ec2_type" }}
+vpc_id="{{ getv "/devops/vpc_id" }}"
+stack_name="{{ getv "/devops/stack_name" }}"
+template_body="{{ getv "/devops/template_body" }}"
+region="{{ getv "/devops/region" }}"
+environment="{{ getv "/devops/environment" }}"
+key_name="{{ getv "/devops/key_name" }}"
+ami_id="{{ getv "/devops/ami_id" }}"
+subnet_ids="'{{ getv "/devops/subnet_ids" }}'"
+security_grps="'{{ getv "/devops/security_grps" }}'"
+ec2_role="{{ getv "/devops/ec2_role" }}"
+ec2_type="{{ getv "/devops/ec2_type" }}"
+
+MACHINE_CONFDIR="/tmp"

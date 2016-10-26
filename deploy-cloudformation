@@ -33,6 +33,38 @@ _build_cluster() {
     fi
 }
 
+remove() {
+    aws cloudformation delete-stack --stack-name ${stack_name}
+    aws cloudformation wait stack-delete-complete --stack-name ${stack_name}
+}
+
+run() {
+    aws cloudformation create-stack --stack-name ${stack_name} \
+        --template-body ${template_body} \
+        --parameters ParameterKey=Region,ParameterValue=${region} \
+            ParameterKey=Environment,ParameterValue=${environment} \
+            ParameterKey=KeyName,ParameterValue=${key_name} \
+            ParameterKey=EC2DockerEngineImageId,ParameterValue=${ami_id} \
+            ParameterKey=EC2LaunchSubnetGroup,ParameterValue=${subnet_ids} \
+            ParameterKey=EC2LaunchSecurityGroup,ParameterValue=${security_grps} \
+            ParameterKey=EC2InstanceProfile,ParameterValue=${ec2_role} \
+            ParameterKey=EC2InstanceType,ParameterValue=${ec2_type}
+
+    aws cloudformation wait stack-create-complete --stack-name ${stack_name}
+
+    # Sync available instances
+    machine --confdir ${MACHINE_CONFDIR} aws config sync --vpc-id ${vpc_id}
+
+    # Create cluster from provided nodes
+    #_build_cluster ${CERT} ${NETWORK} ${NODES}
+
+    # Deploy mongodb service
+    #deploy-mongo-repl --network ${NETWORK} --replSet ${REPL_SET} go
+
+    # Setup mongodb Replication Cluster
+    #deploy-mongo-repl --network ${NETWORK} --replSet ${REPL_SET} setup
+}
+
 while [ $# -gt 0 ]; do
     case ${1} in
         --cert)
@@ -45,67 +77,29 @@ while [ $# -gt 0 ]; do
             shift 1; REPL_SET=$1; shift 1 ;;
 
         rm)
-            aws cloudformation create-stack --stack-name ${stack_name}
-            aws cloudformation wait stack-delete-complete --stack-name ${stack_name}
-            exit 0 ;;
+            shift 1; func="rm"; ;;
 
         run)
-            shift 1; NODES=$@;
-
-            if [ -z ${CERT} ]; then
-                echo "SSH private key must be specified"
-                exit 1
-            fi
-            if [ -z ${REPL_SET} ]; then
-                echo "ReplicaSet must be specified"
-                exit 1
-            fi
-            if [ -z ${NETWORK} ]; then
-                echo "A network (overlay) must be specified"
-                exit 1
-            fi
-            if [ -z ${#NODES[@]} ]; then
-                echo "You must specify at least one node"
-                exit 1
-            fi
-
-            aws cloudformation create-stack --stack-name ${stack_name} \
-                --template-url ${template_url} \
-                --parameters ParameterKey=Region,ParameterValue=${region} \
-                --parameters ParameterKey=Environment,ParameterValue=${environment} \
-                --parameters ParameterKey=KeyName,ParameterValue=${key_name} \
-                --parameters ParameterKey=EC2DockerEngineImageId,ParameterValue=${ami_id} \
-                --parameters ParameterKey=EC2LaunchSubnetGroup,ParameterValue=${subnet_ids} \
-                --parameters ParameterKey=EC2InstanceProfile,ParameterValue=${ec2_role} \
-                --parameters ParameterKey=EC2InstanceType,ParameterValue=${ec2_type}
-
-            aws cloudformation wait stack-create-complete --stack-name ${stack_name}
-
-            # Sync available instances
-            machine --confdir ${MACHINE_CONFDIR} aws config sync --vpc-id ${vpc_id}
-
-            # Create cluster from provided nodes
-            _build_cluster ${CERT} ${NETWORK} ${NODES}
-
-            # Deploy mongodb service
-            deploy-mongo-repl --network ${NETWORK} --replSet ${REPL_SET} go
-
-            # Setup mongodb Replication Cluster
-            deploy-mongo-repl --network ${NETWORK} --replSet ${REPL_SET} setup
-
-            exit 0 ;;
+            shift 1; func="run"; ;;
 
         -h|--help|help)
-            echo "deploy-playbook --cert <key> --network <overlay_network> --replSet <replica_set_name> [run|help] [node ...]"
+            echo "deploy-cloudformation [run|rm|help] --cert <key> --network <overlay_network> --replSet <replica_set_name>"
             exit 0 ;;
 
         *)
             echo "Refuse to process $@; Unexpected arguments/flag"
-            echo "deploy-playbook --cert <key> --network <overlay_network> --replSet <replica_set_name> [run|help] [node ...]"
+            echo "deploy-cloudformation [run|rm|help] --cert <key> --network <overlay_network> --replSet <replica_set_name>"
             exit 1 ;;
     esac
 done
 
-echo "Please specify an action!"
-echo "deploy-playbook --cert <key> --network <overlay_network> --replSet <replica_set_name> [run|help] [node ...]"
-exit 1
+case ${func} in
+    rm)
+        remove; exit 0 ;;
+    run)
+        run; exit 0 ;;
+    *)
+        echo "Please specify an action!"
+        echo "deploy-cloudformation [run|rm|help] --cert <key> --network <overlay_network> --replSet <replica_set_name>"
+        exit 1 ;;
+esac
