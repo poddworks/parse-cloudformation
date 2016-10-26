@@ -1,0 +1,15 @@
+[template]
+src = "cloudformation.cfg.tmpl"
+dest = "cloudformation.cfg"
+keys = [
+    "ami_id",
+    "ec2_role",
+    "ec2_type",
+    "environment",
+    "key_name",
+    "region",
+    "stack_name",
+    "subnet_ids",
+    "template_url",
+    "vpc_id"
+]

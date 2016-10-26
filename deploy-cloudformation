@@ -1,0 +1,111 @@
+#!/bin/bash
+set -e
+
+export PATH=${PWD}/scripts:${PWD}/vendor:${PATH}
+export PYTHONPATH=${PWD}:${PYTHONPATH}
+
+# Source config
+source cloudformation.cfg
+
+_build_cluster() {
+    local cert=${1:?"Missing cert"}
+    local network=${2:?"Missing network (overlay)"}
+
+    shift 2
+    local nodes=$@;
+
+    machine --confdir ${MACHINE_CONFDIR} --cert ${cert} tls gen-cert-install ${nodes}
+
+    args=
+    for node in ${nodes}; do
+        args="${args} --manager ${node}"
+    done
+    machine --confdir ${MACHINE_CONFDIR} create swarm ${args}
+
+    eval $(machine --confdir ${MACHINE_CONFDIR} env ${nodes[0]})
+    if [ -z ${network} ]; then
+        true
+    else
+        networkId=$(docker network ls -f name=${network} -q)
+        if [ -z ${networkId} ]; then
+            docker network create --driver overlay --subnet 10.0.0.0/16 ${network} || true;
+        fi
+    fi
+}
+
+while [ $# -gt 0 ]; do
+    case ${1} in
+        --cert)
+            shift 1; CERT=$1; shift 1 ;;
+
+        --network)
+            shift 1; NETWORK=$1; shift 1 ;;
+
+        --replSet)
+            shift 1; REPL_SET=$1; shift 1 ;;
+
+        rm)
+            aws cloudformation create-stack --stack-name ${stack_name}
+            aws cloudformation wait stack-delete-complete --stack-name ${stack_name}
+            exit 0 ;;
+
+        run)
+            shift 1; NODES=$@;
+
+            if [ -z ${CERT} ]; then
+                echo "SSH private key must be specified"
+                exit 1
+            fi
+            if [ -z ${REPL_SET} ]; then
+                echo "ReplicaSet must be specified"
+                exit 1
+            fi
+            if [ -z ${NETWORK} ]; then
+                echo "A network (overlay) must be specified"
+                exit 1
+            fi
+            if [ -z ${#NODES[@]} ]; then
+                echo "You must specify at least one node"
+                exit 1
+            fi
+
+            aws cloudformation create-stack --stack-name ${stack_name} \
+                --template-url ${template_url} \
+                --parameters ParameterKey=Region,ParameterValue=${region} \
+                --parameters ParameterKey=Environment,ParameterValue=${environment} \
+                --parameters ParameterKey=KeyName,ParameterValue=${key_name} \
+                --parameters ParameterKey=EC2DockerEngineImageId,ParameterValue=${ami_id} \
+                --parameters ParameterKey=EC2LaunchSubnetGroup,ParameterValue=${subnet_ids} \
+                --parameters ParameterKey=EC2InstanceProfile,ParameterValue=${ec2_role} \
+                --parameters ParameterKey=EC2InstanceType,ParameterValue=${ec2_type}
+
+            aws cloudformation wait stack-create-complete --stack-name ${stack_name}
+
+            # Sync available instances
+            machine --confdir ${MACHINE_CONFDIR} aws config sync --vpc-id ${vpc_id}
+
+            # Create cluster from provided nodes
+            _build_cluster ${CERT} ${NETWORK} ${NODES}
+
+            # Deploy mongodb service
+            deploy-mongo-repl --network ${NETWORK} --replSet ${REPL_SET} go
+
+            # Setup mongodb Replication Cluster
+            deploy-mongo-repl --network ${NETWORK} --replSet ${REPL_SET} setup
+
+            exit 0 ;;
+
+        -h|--help|help)
+            echo "deploy-playbook --cert <key> --network <overlay_network> --replSet <replica_set_name> [run|help] [node ...]"
+            exit 0 ;;
+
+        *)
+            echo "Refuse to process $@; Unexpected arguments/flag"
+            echo "deploy-playbook --cert <key> --network <overlay_network> --replSet <replica_set_name> [run|help] [node ...]"
+            exit 1 ;;
+    esac
+done
+
+echo "Please specify an action!"
+echo "deploy-playbook --cert <key> --network <overlay_network> --replSet <replica_set_name> [run|help] [node ...]"
+exit 1
