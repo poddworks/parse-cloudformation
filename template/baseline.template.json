@@ -293,6 +293,31 @@
   },
 
   "Outputs": {
+    "RegisterELBCommand": {
+      "Description": "RegisterELBCommand",
+      "Value": {
+        "Fn::Join": [
+          " ",
+          [
+            "aws elb register-instances-with-load-balancer",
+            "--load-balancer-name",
+            { "Ref": "APILoadBalancer" },
+            "--instances",
+            {
+              "Fn::Join": [
+                " ",
+                [
+                  { "Ref": "DockerSwarmManager001" },
+                  { "Ref": "DockerSwarmManager002" },
+                  { "Ref": "DockerSwarmManager003" }
+                ]
+              ]
+            }
+          ]
+        ]
+      }
+    },
+
     "ParseAPIEndpoint": {
       "Description": "APIEndpoint",
       "Value": {

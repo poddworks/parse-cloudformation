@@ -52,8 +52,11 @@ run() {
 
     aws cloudformation wait stack-create-complete --stack-name ${stack_name}
 
+    # Execute composed ELB register command
+    eval $(aws cloudformation describe-stacks --stack-name staging | jq -r '.Stacks | .[0].Outputs | .[] | select(.OutputKey | contains("RegisterELBCommand")) | .OutputValue')
+
     # Sync available instances
-    machine --confdir ${MACHINE_CONFDIR} aws config sync --vpc-id ${vpc_id}
+    machine --confdir ${MACHINE_CONFDIR} aws --region ${region} config sync --vpc-id ${vpc_id}
 
     # Create cluster from provided nodes
     #_build_cluster ${CERT} ${NETWORK} ${NODES}
