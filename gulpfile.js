@@ -3,19 +3,38 @@
 const chmod = require("gulp-chmod");
 const del = require("del");
 const gulp = require("gulp");
+const gunzip = require("gulp-gunzip");
+const ignore = require("gulp-ignore");
+const rename = require("gulp-rename");
 const request = require("request");
 const source = require("vinyl-source-stream");
+const untar = require("gulp-untar");
 
 const dest = {
-    venv: ".venv",
     vendor: "vendor"
 };
 const config = {
+    dockerDownloadUrl: "https://get.docker.com/builds/Linux/x86_64/docker-1.12.1.tgz",
     machineDownloadUrl: "https://github.com/poddworks/machine/releases/download/1.0.0/machine-Linux-x86_64"
 };
 
 gulp.task("clean", function() {
-    return del([ dest.vendor, dest.venv ]);
+    return del([ dest.vendor ]);
+});
+
+gulp.task("vendor.awscli", function() {
+    return gulp.src("aws").pipe(gulp.dest(dest.vendor));
+});
+
+gulp.task("vendor.docker", function() {
+    return request(config.dockerDownloadUrl).
+        pipe(source("docker.tgz")).
+        pipe(gunzip()).
+        pipe(untar()).
+        pipe(ignore.include("docker/docker")).
+        pipe(rename({ dirname: "" })).
+        pipe(chmod(755)).
+        pipe(gulp.dest(dest.vendor));
 });
 
 gulp.task("vendor.machine", function() {
@@ -25,6 +44,6 @@ gulp.task("vendor.machine", function() {
         pipe(gulp.dest(dest.vendor));
 });
 
-gulp.task("vendor", [ "vendor.machine" ]);
+gulp.task("vendor", [ "vendor.awscli", "vendor.docker", "vendor.machine" ]);
 
-gulp.task("default", [ "vendor" ]);
+gulp.task("default");
