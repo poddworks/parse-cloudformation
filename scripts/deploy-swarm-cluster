@@ -27,8 +27,6 @@ _build_cluster() {
     fi
 }
 
-CERT=
-NETWORK=
 while [ $# -gt 0 ]; do
     case ${1} in
         --cert)
@@ -94,16 +92,16 @@ while [ $# -gt 0 ]; do
             exit 0 ;;
 
         -h|--help|help)
-            echo "deploy-swarm-cluster --network <overlay_network> --replSet <replica_set_name> [go|setup|help] [node ...]"
+            echo "deploy-swarm-cluster --cert <key> --network <overlay_network> --replSet <replica_set_name> [go|setup|help] [node ...]"
             exit 0 ;;
 
         *)
             echo "Refuse to process $@; Unexpected arguments/flag"
-            echo "deploy-swarm-cluster --network <overlay_network> --replSet <replica_set_name> [go|setup|help] [node ...]"
+            echo "deploy-swarm-cluster --cert <key> --network <overlay_network> --replSet <replica_set_name> [go|setup|help] [node ...]"
             exit 1 ;;
     esac
 done
 
 echo "Please specify an action!"
-echo "deploy-swarm-cluster --network <overlay_network> --replSet <replica_set_name> [go|setup|help] [node ...]"
+echo "deploy-swarm-cluster --cert <key> --network <overlay_network> --replSet <replica_set_name> [go|setup|help] [node ...]"
 exit 1
