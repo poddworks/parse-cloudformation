@@ -7,39 +7,6 @@ export PYTHONPATH=${PWD}:${PYTHONPATH}
 # Source config
 source cloudformation.cfg
 
-_build_cluster() {
-    local cert=${1:?"Missing cert"}
-    local network=${2:?"Missing network (overlay)"}
-    local replset=${3:?"Missing replset (mongodb replica set)"}
-
-    shift 3
-    local nodes=$@;
-
-    machine --confdir ${MACHINE_CONFDIR} --user ${MACHINE_USER} --cert ${cert} tls gen-cert-install ${nodes}
-
-    args=
-    for node in ${nodes}; do
-        args="${args} --manager ${node}"
-    done
-    machine --confdir ${MACHINE_CONFDIR} create swarm ${args}
-
-    eval $(machine --confdir ${MACHINE_CONFDIR} env ${nodes[0]})
-    if [ -z ${network} ]; then
-        true
-    else
-        networkId=$(docker network ls -f name=${network} -q)
-        if [ -z ${networkId} ]; then
-            docker network create --driver overlay --subnet 10.0.0.0/16 ${network} || true;
-        fi
-    fi
-
-    # Deploy mongodb service
-    deploy-mongo-repl --network ${network} --replSet ${replset} go
-
-    # Setup mongodb Replication Cluster
-    deploy-mongo-repl --network ${network} --replSet ${replset} setup
-}
-
 remove() {
     aws cloudformation delete-stack --stack-name ${stack_name}
     aws cloudformation wait stack-delete-complete --stack-name ${stack_name}
@@ -66,9 +33,21 @@ run() {
     # Sync available instances
     machine --confdir ${MACHINE_CONFDIR} aws --region ${region} config sync --vpc-id ${vpc_id}
 
-    # Create cluster from provided nodes
     nodes=$(aws cloudformation describe-stacks --stack-name ${stack_name} | jq -r '.Stacks | .[0].Outputs | .[] | select(.OutputKey | contains("Manager")) | .OutputValue')
-    _build_cluster ${CERT} ${NETWORK} ${REPL_SET} ${nodes}
+    eval $(machine --confdir ${MACHINE_CONFDIR} env ${nodes[0]})
+
+    # Create Swarm Mode cluster from provided nodes
+    deploy-swarm-cluster setup --cert ${CERT} --network ${NETWORK} ${nodes}
+
+    # Deploy mongodb service
+    deploy-mongo-repl --network ${NETWORK} --replSet ${REPL_SET} go
+
+    # Setup mongodb replication cluster
+    deploy-mongo-repl --network ${NETWORK} --replSet ${REPL_SET} setup
+}
+
+show() {
+    aws cloudformation describe-stacks --stack-name ${stack_name}
 }
 
 while [ $# -gt 0 ]; do
@@ -88,13 +67,16 @@ while [ $# -gt 0 ]; do
         run)
             shift 1; func="run"; ;;
 
+        show)
+            shift 1; func="show"; ;;
+
         -h|--help|help)
-            echo "deploy-cloudformation [run|rm|help] --cert <key> --network <overlay_network> --replSet <replica_set_name>"
+            echo "deploy-cloudformation [run|rm|show|help] --cert <key> --network <overlay_network> --replSet <replica_set_name>"
             exit 0 ;;
 
         *)
             echo "Refuse to process $@; Unexpected arguments/flag"
-            echo "deploy-cloudformation [run|rm|help] --cert <key> --network <overlay_network> --replSet <replica_set_name>"
+            echo "deploy-cloudformation [run|rm|show|help] --cert <key> --network <overlay_network> --replSet <replica_set_name>"
             exit 1 ;;
     esac
 done
@@ -104,8 +86,10 @@ case ${func} in
         remove; exit 0 ;;
     run)
         run; exit 0 ;;
+    show)
+        show; exit 0 ;;
     *)
         echo "Please specify an action!"
-        echo "deploy-cloudformation [run|rm|help] --cert <key> --network <overlay_network> --replSet <replica_set_name>"
+        echo "deploy-cloudformation [run|rm|show|help] --cert <key> --network <overlay_network> --replSet <replica_set_name>"
         exit 1 ;;
 esac
