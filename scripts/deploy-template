@@ -1,5 +1,0 @@
-#!/bin/bash
-set -e
-template=$(basename ${1})
-aws s3 cp ${1} s3://devops.poddworks.io/cloudformation/${template} &>/dev/null
-echo "https://s3-$(aws configure get region).amazonaws.com/devops.poddworks.io/cloudformation/${template}"
