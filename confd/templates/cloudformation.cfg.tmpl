@@ -10,4 +10,5 @@ security_grps="'{{ getv "/devops/security_grps" }}'"
 ec2_role="{{ getv "/devops/ec2_role" }}"
 ec2_type="{{ getv "/devops/ec2_type" }}"
 
-MACHINE_CONFDIR="/tmp"
+MACHINE_USER="ubuntu"
+MACHINE_CONFDIR="/tmp/machine"

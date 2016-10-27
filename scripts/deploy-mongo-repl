@@ -4,9 +4,9 @@ set -e
 _wait() {
     service=${1:?"Must provide a service name"}
     replicas=${2:?"Must provide expected replicas"}
-    while true do;
+    while true; do
         n=$(docker service inspect ${service} | jq .[0].Spec.Mode.Replicated.Replicas)
-        if [ ${n} = ${replicas} ]; then
+        if [ ${n} == ${replicas} ]; then
             break
         else
             sleep 30

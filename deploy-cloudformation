@@ -10,11 +10,12 @@ source cloudformation.cfg
 _build_cluster() {
     local cert=${1:?"Missing cert"}
     local network=${2:?"Missing network (overlay)"}
+    local replset=${3:?"Missing replset (mongodb replica set)"}
 
-    shift 2
+    shift 3
     local nodes=$@;
 
-    machine --confdir ${MACHINE_CONFDIR} --cert ${cert} tls gen-cert-install ${nodes}
+    machine --confdir ${MACHINE_CONFDIR} --user ${MACHINE_USER} --cert ${cert} tls gen-cert-install ${nodes}
 
     args=
     for node in ${nodes}; do
@@ -31,6 +32,12 @@ _build_cluster() {
             docker network create --driver overlay --subnet 10.0.0.0/16 ${network} || true;
         fi
     fi
+
+    # Deploy mongodb service
+    deploy-mongo-repl --network ${network} --replSet ${replset} go
+
+    # Setup mongodb Replication Cluster
+    deploy-mongo-repl --network ${network} --replSet ${replset} setup
 }
 
 remove() {
@@ -60,13 +67,8 @@ run() {
     machine --confdir ${MACHINE_CONFDIR} aws --region ${region} config sync --vpc-id ${vpc_id}
 
     # Create cluster from provided nodes
-    #_build_cluster ${CERT} ${NETWORK} ${NODES}
-
-    # Deploy mongodb service
-    #deploy-mongo-repl --network ${NETWORK} --replSet ${REPL_SET} go
-
-    # Setup mongodb Replication Cluster
-    #deploy-mongo-repl --network ${NETWORK} --replSet ${REPL_SET} setup
+    nodes=$(aws cloudformation describe-stacks --stack-name ${stack_name} | jq -r '.Stacks | .[0].Outputs | .[] | select(.OutputKey | contains("Manager")) | .OutputValue')
+    _build_cluster ${CERT} ${NETWORK} ${REPL_SET} ${nodes}
 }
 
 while [ $# -gt 0 ]; do
