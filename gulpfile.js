@@ -52,6 +52,6 @@ gulp.task("vendor.machine", function() {
         pipe(gulp.dest(dest.vendor));
 });
 
-gulp.task("vendor", [ "vendor.awscli", "vendor.docker", "vendor.machine" ]);
+gulp.task("vendor", [ "vendor.awscli", "vendor.docker", "vendor.jq", "vendor.machine" ]);
 
 gulp.task("default");
