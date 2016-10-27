@@ -4,6 +4,8 @@ set -e
 export PATH=${PWD}/scripts:${PWD}/vendor:${PATH}
 export PYTHONPATH=${PWD}:${PYTHONPATH}
 
+PRODUCT="integration"
+
 # Source config
 source cloudformation.cfg
 
@@ -18,6 +20,7 @@ run() {
         --parameters ParameterKey=Region,ParameterValue=${region} \
             ParameterKey=VpcId,ParameterValue=${vpc_id} \
             ParameterKey=Environment,ParameterValue=${environment} \
+            ParameterKey=Product,ParameterValue=${PRODUCT} \
             ParameterKey=KeyName,ParameterValue=${key_name} \
             ParameterKey=EC2DockerEngineImageId,ParameterValue=${ami_id} \
             ParameterKey=EC2LaunchSubnetGroup,ParameterValue=${subnet_ids} \
@@ -52,6 +55,9 @@ show() {
 
 while [ $# -gt 0 ]; do
     case ${1} in
+        --product)
+            shift 1; PRODUCT=$1; shift 1 ;;
+
         --cert)
             shift 1; CERT=$1; shift 1 ;;
 

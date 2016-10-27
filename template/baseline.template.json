@@ -36,6 +36,12 @@
       "Default": "dev"
     },
 
+    "Product": {
+      "Description": "Product for this deployment",
+      "Type": "String",
+      "Default": "integration"
+    },
+
     "KeyName": {
       "Description": "Name of an existing EC2 KeyPair to enable SSH access to the instances",
       "Type": "AWS::EC2::KeyPair::KeyName",
@@ -107,6 +113,10 @@
           {
             "Key": "Env",
             "Value": { "Ref": "Environment" }
+          },
+          {
+            "Key": "Product",
+            "Value": { "Ref": "Product" }
           }
         ]
       },
@@ -115,7 +125,7 @@
       ]
     },
 
-    "DockerSwarmManager001": {
+    "Manager001": {
       "Type": "AWS::EC2::Instance",
       "Properties": {
         "BlockDeviceMappings": [
@@ -134,14 +144,25 @@
         "SubnetId": {
           "Fn::Select": [ "0", { "Ref": "EC2LaunchSubnetGroup" } ]
         },
+        "UserData": {
+          "Fn::Base64" : { "Fn::Join" : ["", [
+            "#!/bin/bash -xe\n",
+            "echo 'manager-1' >/etc/hostname\n",
+            "shutdown -r now\n"
+          ]]}
+        },
         "Tags": [
           {
             "Key": "Env",
             "Value": { "Ref": "Environment" }
           },
           {
+            "Key": "Product",
+            "Value": { "Ref": "Product" }
+          },
+          {
             "Key": "Name",
-            "Value": "manager-001"
+            "Value": "manager-1"
           },
           {
             "Key": "Engine",
@@ -159,7 +180,7 @@
       }
     },
 
-    "DockerSwarmManager002": {
+    "Manager002": {
       "Type": "AWS::EC2::Instance",
       "Properties": {
         "BlockDeviceMappings": [
@@ -178,14 +199,25 @@
         "SubnetId": {
           "Fn::Select": [ "1", { "Ref": "EC2LaunchSubnetGroup" } ]
         },
+        "UserData": {
+          "Fn::Base64" : { "Fn::Join" : ["", [
+            "#!/bin/bash -xe\n",
+            "echo 'manager-2' >/etc/hostname\n",
+            "shutdown -r now\n"
+          ]]}
+        },
         "Tags": [
           {
             "Key": "Env",
             "Value": { "Ref": "Environment" }
           },
           {
+            "Key": "Product",
+            "Value": { "Ref": "Product" }
+          },
+          {
             "Key": "Name",
-            "Value": "manager-002"
+            "Value": "manager-2"
           },
           {
             "Key": "Engine",
@@ -203,7 +235,7 @@
       }
     },
 
-    "DockerSwarmManager003": {
+    "Manager003": {
       "Type": "AWS::EC2::Instance",
       "Properties": {
         "BlockDeviceMappings": [
@@ -222,14 +254,25 @@
         "SubnetId": {
           "Fn::Select": [ "2", { "Ref": "EC2LaunchSubnetGroup" } ]
         },
+        "UserData": {
+          "Fn::Base64" : { "Fn::Join" : ["", [
+            "#!/bin/bash -xe\n",
+            "echo 'manager-3' >/etc/hostname\n",
+            "shutdown -r now\n"
+          ]]}
+        },
         "Tags": [
           {
             "Key": "Env",
             "Value": { "Ref": "Environment" }
           },
           {
+            "Key": "Product",
+            "Value": { "Ref": "Product" }
+          },
+          {
             "Key": "Name",
-            "Value": "manager-003"
+            "Value": "manager-3"
           },
           {
             "Key": "Engine",
@@ -264,6 +307,10 @@
           {
             "Key": "Env",
             "Value": { "Ref": "Environment" }
+          },
+          {
+            "Key": "Product",
+            "Value": { "Ref": "Product" }
           }
         ]
       }
@@ -292,6 +339,10 @@
           {
             "Key": "Env",
             "Value": { "Ref": "Environment" }
+          },
+          {
+            "Key": "Product",
+            "Value": { "Ref": "Product" }
           }
         ]
       }
@@ -313,9 +364,9 @@
               "Fn::Join": [
                 " ",
                 [
-                  { "Ref": "DockerSwarmManager001" },
-                  { "Ref": "DockerSwarmManager002" },
-                  { "Ref": "DockerSwarmManager003" }
+                  { "Ref": "Manager001" },
+                  { "Ref": "Manager002" },
+                  { "Ref": "Manager003" }
                 ]
               ]
             }
@@ -334,21 +385,21 @@
     "Manager001": {
       "Description": "Manager001",
       "Value": {
-        "Fn::Join": [ "-", [ "manager-001", { "Ref": "DockerSwarmManager001" } ] ]
+        "Fn::Join": [ "-", [ "manager-1", { "Ref": "Manager001" } ] ]
       }
     },
 
     "Manager002": {
       "Description": "Manager002",
       "Value": {
-        "Fn::Join": [ "-", [ "manager-002", { "Ref": "DockerSwarmManager002" } ] ]
+        "Fn::Join": [ "-", [ "manager-2", { "Ref": "Manager002" } ] ]
       }
     },
 
     "Manager003": {
       "Description": "Manager003",
       "Value": {
-        "Fn::Join": [ "-", [ "manager-003", { "Ref": "DockerSwarmManager003" } ] ]
+        "Fn::Join": [ "-", [ "manager-3", { "Ref": "Manager003" } ] ]
       }
     }
   }
