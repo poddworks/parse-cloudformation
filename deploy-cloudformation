@@ -42,6 +42,7 @@ run() {
     aws cloudformation create-stack --stack-name ${stack_name} \
         --template-body ${template_body} \
         --parameters ParameterKey=Region,ParameterValue=${region} \
+            ParameterKey=VpcId,ParameterValue=${vpc_id} \
             ParameterKey=Environment,ParameterValue=${environment} \
             ParameterKey=KeyName,ParameterValue=${key_name} \
             ParameterKey=EC2DockerEngineImageId,ParameterValue=${ami_id} \
@@ -53,7 +54,7 @@ run() {
     aws cloudformation wait stack-create-complete --stack-name ${stack_name}
 
     # Execute composed ELB register command
-    eval $(aws cloudformation describe-stacks --stack-name staging | jq -r '.Stacks | .[0].Outputs | .[] | select(.OutputKey | contains("RegisterELBCommand")) | .OutputValue')
+    eval $(aws cloudformation describe-stacks --stack-name ${stack_name} | jq -r '.Stacks | .[0].Outputs | .[] | select(.OutputKey | contains("RegisterELBCommand")) | .OutputValue')
 
     # Sync available instances
     machine --confdir ${MACHINE_CONFDIR} aws --region ${region} config sync --vpc-id ${vpc_id}

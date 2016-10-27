@@ -24,6 +24,12 @@
       ]
     },
 
+    "VpcId": {
+      "Description": "VPC to deploy stack into",
+      "Type": "AWS::EC2::VPC::Id",
+      "ConstraintDescription": "Must be the ID of an VPC."
+    },
+
     "Environment": {
       "Description": "Deployment environment",
       "Type": "String",
@@ -51,7 +57,7 @@
     "EC2LaunchSecurityGroup": {
       "Description": "Docker Engine Security Group",
       "Type": "List<AWS::EC2::SecurityGroup::Id>",
-      "ConstraintDescription": "Select security group to launch cluster into (Up to 4)."
+      "ConstraintDescription": "Select security group to launch cluster into (Up to 3; The first item must be docker-machine)."
     },
 
     "EC2InstanceProfile": {
@@ -63,9 +69,9 @@
     "EC2InstanceType": {
       "Description": "Docker Engine instance type",
       "Type": "String",
-      "Default": "t2.medium",
+      "Default": "t2.micro",
       "AllowedValues": [
-        "t2.medium",
+        "t2.micro",
         "t2.large",
         "m4.large"
       ],
@@ -81,7 +87,7 @@
       "Type" : "AWS::ElasticLoadBalancing::LoadBalancer",
       "Properties": {
         "CrossZone": "true",
-        "AvailabilityZones": { "Fn::GetAZs" : "" },
+        "Subnets": { "Ref": "EC2LaunchSubnetGroup" },
         "Listeners": [
           { "LoadBalancerPort": "80", "InstancePort": "8080", "Protocol": "HTTP" }
         ],
@@ -103,7 +109,10 @@
             "Value": { "Ref": "Environment" }
           }
         ]
-      }
+      },
+      "DependsOn": [
+          "PublicAPISecurityGroup"
+      ]
     },
 
     "DockerSwarmManager001": {
@@ -242,6 +251,7 @@
       "Type": "AWS::EC2::SecurityGroup",
       "Properties": {
         "GroupDescription": "Allowed Public Ingress API access policy",
+        "VpcId": { "Ref": "VpcId" },
         "SecurityGroupIngress": [
           {
             "IpProtocol": "tcp",
@@ -263,23 +273,19 @@
       "Type": "AWS::EC2::SecurityGroup",
       "Properties": {
         "GroupDescription": "Allowed Ingress API access policy",
+        "VpcId": { "Ref": "VpcId" },
         "SecurityGroupIngress": [
           {
             "IpProtocol": "tcp",
             "FromPort": "8080",
             "ToPort": "8080",
-            "SourceSecurityGroupName": "docker-machine"
+            "SourceSecurityGroupId": { "Fn::Select": [ "0", { "Ref": "EC2LaunchSecurityGroup" } ] }
           },
           {
             "IpProtocol": "tcp",
             "FromPort": "8080",
             "ToPort": "8080",
-            "SourceSecurityGroupOwnerId": {
-              "Fn::GetAtt": [ "APILoadBalancer", "SourceSecurityGroup.OwnerAlias" ]
-            },
-            "SourceSecurityGroupName" : {
-              "Fn::GetAtt": [ "APILoadBalancer", "SourceSecurityGroup.GroupName" ]
-            }
+            "SourceSecurityGroupId" : { "Ref": "PublicAPISecurityGroup" }
           }
         ],
         "Tags": [
