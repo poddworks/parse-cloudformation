@@ -23,10 +23,6 @@ gulp.task("clean", function() {
     return del([ dest.vendor ]);
 });
 
-gulp.task("vendor.awscli", function() {
-    return gulp.src("aws").pipe(gulp.dest(dest.vendor));
-});
-
 gulp.task("vendor.docker", function() {
     return request(config.dockerDownloadUrl).
         pipe(source("docker.tgz")).
@@ -52,6 +48,6 @@ gulp.task("vendor.machine", function() {
         pipe(gulp.dest(dest.vendor));
 });
 
-gulp.task("vendor", [ "vendor.awscli", "vendor.docker", "vendor.jq", "vendor.machine" ]);
+gulp.task("vendor", [ "vendor.docker", "vendor.jq", "vendor.machine" ]);
 
 gulp.task("default");
