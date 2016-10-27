@@ -47,7 +47,7 @@ run() {
 }
 
 show() {
-    aws cloudformation describe-stacks --stack-name ${stack_name}
+    aws cloudformation describe-stacks --stack-name ${stack_name} | jq -r '.Stacks | .[0].Outputs | .[]'
 }
 
 while [ $# -gt 0 ]; do
