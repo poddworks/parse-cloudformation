@@ -17,12 +17,26 @@ while [ $# -gt 0 ]; do
             if [ -z ${networkId} ]; then
                 docker network create --driver overlay --subnet 10.0.0.0/16 ${NETWORK} || true;
             fi
-            docker service create --name mongo-1 --replicas 1 --network ${NETWORK} mongo:3.2.6 --replSet ${REPL_SET}
-            docker service create --name mongo-2 --replicas 1 --network ${NETWORK} mongo:3.2.6 --replSet ${REPL_SET}
-            docker service create --name mongo-3 --replicas 1 --network ${NETWORK} mongo:3.2.6 --replSet ${REPL_SET}
+            docker service create --name mongo-1 --replicas 1 --network ${NETWORK} \
+                --constraint 'node.hostname == manager-1' \
+                --mount 'type=volume,src=mongo.1.db,dst=/data/db' \
+                --mount 'type=volume,src=mongo.1.configdb,dst=/data/configdb' \
+                mongo:3.2.6 --replSet ${REPL_SET}
+
+            docker service create --name mongo-2 --replicas 1 --network ${NETWORK} \
+                --constraint 'node.hostname == manager-2' \
+                --mount 'type=volume,src=mongo.2.db,dst=/data/db' \
+                --mount 'type=volume,src=mongo.2.configdb,dst=/data/configdb' \
+                mongo:3.2.6 --replSet ${REPL_SET}
+
+            docker service create --name mongo-3 --replicas 1 --network ${NETWORK} \
+                --constraint 'node.hostname == manager-3' \
+                --mount 'type=volume,src=mongo.3.db,dst=/data/db' \
+                --mount 'type=volume,src=mongo.3.configdb,dst=/data/configdb' \
+                mongo:3.2.6 --replSet ${REPL_SET}
             # Wait for it to complete, by sleeping
             # TODO: how do we know it is ready?
-            sleep 60
+            sleep 120
             exit 0 ;;
 
         setup)
