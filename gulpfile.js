@@ -14,7 +14,7 @@ const dest = {
     vendor: "vendor"
 };
 const config = {
-    dockerDownloadUrl: "https://get.docker.com/builds/Linux/x86_64/docker-1.12.1.tgz",
+    dockerDownloadUrl: "https://get.docker.com/builds/Linux/x86_64/docker-1.12.3.tgz",
     jqDownloadUrl: "https://github.com/stedolan/jq/releases/download/jq-1.5/jq-linux64",
     machineDownloadUrl: "https://github.com/poddworks/machine/releases/download/1.1.0/machine-Linux-x86_64"
 };
