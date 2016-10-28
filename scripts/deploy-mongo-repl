@@ -1,67 +1,97 @@
 #!/bin/bash
 set -e
 
+remove() {
+    docker service rm mongo-1 mongo-2 mongo-3
+}
+
+build() {
+    networkId=$(docker network ls -f name=${NETWORK} -q)
+    if [ -z ${networkId} ]; then
+        echo "Create overlay network: $(docker network create --driver overlay --subnet 10.0.0.0/16 ${network})";
+    fi
+
+    mongo1=$(docker service create --name mongo-1 --replicas 1 --network ${NETWORK} \
+        --constraint 'node.hostname == manager-1' \
+        --mount 'type=volume,src=mongo.1.db,dst=/data/db' \
+        --mount 'type=volume,src=mongo.1.configdb,dst=/data/configdb' \
+        mongo:3.2.6 --replSet ${REPL_SET})
+
+    mongo2=$(docker service create --name mongo-2 --replicas 1 --network ${NETWORK} \
+        --constraint 'node.hostname == manager-2' \
+        --mount 'type=volume,src=mongo.2.db,dst=/data/db' \
+        --mount 'type=volume,src=mongo.2.configdb,dst=/data/configdb' \
+        mongo:3.2.6 --replSet ${REPL_SET})
+
+    mongo3=$(docker service create --name mongo-3 --replicas 1 --network ${NETWORK} \
+        --constraint 'node.hostname == manager-3' \
+        --mount 'type=volume,src=mongo.3.db,dst=/data/db' \
+        --mount 'type=volume,src=mongo.3.configdb,dst=/data/configdb' \
+        mongo:3.2.6 --replSet ${REPL_SET})
+
+    # Wait for it to complete, by sleeping
+    # TODO: how do we know it is ready?
+    sleep 120
+
+    echo "Create mongo-1: ${mongo1}"
+    echo "Create mongo-2: ${mongo2}"
+    echo "Create mongo-3: ${mongo3}"
+}
+
+setup() {
+    # Replica command for a three node primary-secondary-secondary setup
+    replSetupCommand="rs.initiate({ \"_id\": \"${REPL_SET}\", \"version\": 1, \"members\": [ { \"_id\": 0, \"host\": \"mongo-1:27017\" }, { \"_id\": 1, \"host\": \"mongo-2:27017\" }, { \"_id\": 2, \"host\": \"mongo-3:27017\" } ] })"
+    # Spawn onetime service
+    mongoRepl=$(docker service create --name mongo-repl-onetime --replicas 1 --network ${NETWORK} \
+        --restart-condition none \
+        mongo:3.2.6 mongo mongodb://mongo-1:27017/${REPL_SET} --eval "${replSetupCommand}")
+    echo "Spawn repl setup worker: ${mongoRepl}"
+
+    # Wait for it to complete, by sleeping
+    # TODO: how do we know it is ready?
+    sleep 5
+
+    # Remove the onetime service
+    docker service rm mongo-repl-onetime
+}
+
 while [ $# -gt 0 ]; do
     case ${1} in
         --network)
             shift 1; NETWORK=$1; shift 1 ;;
+
         --replSet)
             shift 1; REPL_SET=$1; shift 1 ;;
 
         rm)
-            docker service rm mongo-1 mongo-2 mongo-3
-            exit 0 ;;
+            shift 1; func="rm"; ;;
 
         go)
-            networkId=$(docker network ls -f name=${NETWORK} -q)
-            if [ -z ${networkId} ]; then
-                docker network create --driver overlay --subnet 10.0.0.0/16 ${NETWORK} || true;
-            fi
-            docker service create --name mongo-1 --replicas 1 --network ${NETWORK} \
-                --constraint 'node.hostname == manager-1' \
-                --mount 'type=volume,src=mongo.1.db,dst=/data/db' \
-                --mount 'type=volume,src=mongo.1.configdb,dst=/data/configdb' \
-                mongo:3.2.6 --replSet ${REPL_SET}
-
-            docker service create --name mongo-2 --replicas 1 --network ${NETWORK} \
-                --constraint 'node.hostname == manager-2' \
-                --mount 'type=volume,src=mongo.2.db,dst=/data/db' \
-                --mount 'type=volume,src=mongo.2.configdb,dst=/data/configdb' \
-                mongo:3.2.6 --replSet ${REPL_SET}
-
-            docker service create --name mongo-3 --replicas 1 --network ${NETWORK} \
-                --constraint 'node.hostname == manager-3' \
-                --mount 'type=volume,src=mongo.3.db,dst=/data/db' \
-                --mount 'type=volume,src=mongo.3.configdb,dst=/data/configdb' \
-                mongo:3.2.6 --replSet ${REPL_SET}
-            # Wait for it to complete, by sleeping
-            # TODO: how do we know it is ready?
-            sleep 120
-            exit 0 ;;
+            shift 1; func="go"; ;;
 
         setup)
-            # Replica command for a three node primary-secondary-secondary setup
-            replSetupCommand="rs.initiate({ \"_id\": \"${REPL_SET}\", \"version\": 1, \"members\": [ { \"_id\": 0, \"host\": \"mongo-1:27017\" }, { \"_id\": 1, \"host\": \"mongo-2:27017\" }, { \"_id\": 2, \"host\": \"mongo-3:27017\" } ] })"
-            # Spawn onetime service
-            docker service create --name mongo-repl-onetime --restart-condition none --replicas 1 --network ${NETWORK} mongo:3.2.6 mongo mongodb://mongo-1:27017/staging --eval "${replSetupCommand}"
-            # Wait for it to complete, by sleeping
-            # TODO: how do we know it is ready?
-            sleep 5
-            # Remove the onetime service
-            docker service rm mongo-repl-onetime
-            exit 0 ;;
+            shift 1; func="setup"; ;;
 
         -h|--help|help)
-            echo "deploy-mongo-repl --network <overlay_network> --replSet <replica_set_name> [go|setup|rm|help]"
+            echo "deploy-mongo-repl [go|setup|rm|help] --network <overlay_network> --replSet <replica_set_name>"
             exit 0 ;;
 
         *)
             echo "Refuse to process $@; Unexpected arguments/flag"
-            echo "deploy-mongo-repl --network <overlay_network> --replSet <replica_set_name> [go|setup|rm|help]"
+            echo "deploy-mongo-repl [go|setup|rm|help] --network <overlay_network> --replSet <replica_set_name>"
             exit 1 ;;
     esac
 done
 
-echo "Please specify an action!"
-echo "deploy-mongo-repl --network <overlay_network> --replSet <replica_set_name> [go|setup|rm|help]"
-exit 1
+case ${func} in
+    rm)
+        remove; exit 0 ;;
+    go)
+        build; exit 0 ;;
+    setup)
+        setup; exit 0 ;;
+    *)
+        echo "Please specify an action!"
+        echo "deploy-mongo-repl [go|setup|rm|help] --network <overlay_network> --replSet <replica_set_name>"
+        exit 1 ;;
+esac

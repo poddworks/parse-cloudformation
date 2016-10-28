@@ -27,7 +27,7 @@ setup() {
     else
         networkId=$(docker network ls -f name=${network} -q)
         if [ -z ${networkId} ]; then
-            docker network create --driver overlay --subnet 10.0.0.0/16 ${network} || true;
+            echo "Create overlay network: $(docker network create --driver overlay --subnet 10.0.0.0/16 ${network})";
         fi
     fi
 }

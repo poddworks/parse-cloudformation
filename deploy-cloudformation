@@ -34,7 +34,7 @@ run() {
     eval $(aws cloudformation describe-stacks --stack-name ${stack_name} | jq -r '.Stacks | .[0].Outputs | .[] | select(.OutputKey | contains("RegisterELBCommand")) | .OutputValue')
 
     # Sync available instances
-    machine --confdir ${MACHINE_CONFDIR} aws --region ${region} config sync --vpc-id ${vpc_id}
+    machine --confdir ${MACHINE_CONFDIR} aws --region ${region} config sync --vpc-id ${vpc_id} -f
 
     nodes=$(aws cloudformation describe-stacks --stack-name ${stack_name} | jq -r '.Stacks | .[0].Outputs | .[] | select(.OutputKey | contains("Manager")) | .OutputValue')
     eval $(machine --confdir ${MACHINE_CONFDIR} env ${nodes[0]})
@@ -43,10 +43,10 @@ run() {
     deploy-swarm-cluster setup --cert ${CERT} --network ${NETWORK} ${nodes}
 
     # Deploy mongodb service
-    deploy-mongo-repl --network ${NETWORK} --replSet ${REPL_SET} go
+    deploy-mongo-repl go --network ${NETWORK} --replSet ${REPL_SET}
 
     # Setup mongodb replication cluster
-    deploy-mongo-repl --network ${NETWORK} --replSet ${REPL_SET} setup
+    deploy-mongo-repl setup --network ${NETWORK} --replSet ${REPL_SET}
 }
 
 show() {
@@ -55,9 +55,6 @@ show() {
 
 while [ $# -gt 0 ]; do
     case ${1} in
-        --product)
-            shift 1; PRODUCT=$1; shift 1 ;;
-
         --cert)
             shift 1; CERT=$1; shift 1 ;;
 
@@ -71,18 +68,18 @@ while [ $# -gt 0 ]; do
             shift 1; func="rm"; ;;
 
         run)
-            shift 1; func="run"; ;;
+            shift 1; func="run"; PRODUCT=$1; shift 1 ;;
 
         show)
             shift 1; func="show"; ;;
 
         -h|--help|help)
-            echo "deploy-cloudformation [run|rm|show|help] --cert <key> --network <overlay_network> --replSet <replica_set_name>"
+            echo "deploy-cloudformation [run <product_name>|rm|show|help] --cert <key> --network <overlay_network> --replSet <replica_set_name>"
             exit 0 ;;
 
         *)
             echo "Refuse to process $@; Unexpected arguments/flag"
-            echo "deploy-cloudformation [run|rm|show|help] --cert <key> --network <overlay_network> --replSet <replica_set_name>"
+            echo "deploy-cloudformation [run <product_name>|rm|show|help] --cert <key> --network <overlay_network> --replSet <replica_set_name>"
             exit 1 ;;
     esac
 done
@@ -96,6 +93,6 @@ case ${func} in
         show; exit 0 ;;
     *)
         echo "Please specify an action!"
-        echo "deploy-cloudformation [run|rm|show|help] --cert <key> --network <overlay_network> --replSet <replica_set_name>"
+        echo "deploy-cloudformation [run <product_name>|rm|show|help] --cert <key> --network <overlay_network> --replSet <replica_set_name>"
         exit 1 ;;
 esac
