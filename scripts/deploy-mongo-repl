@@ -8,7 +8,7 @@ remove() {
 build() {
     networkId=$(docker network ls -f name=${NETWORK} -q)
     if [ -z ${networkId} ]; then
-        echo "Create overlay network: $(docker network create --driver overlay --subnet 10.0.0.0/16 ${network})";
+        echo "Create overlay network: $(docker network create --driver overlay --subnet 10.0.0.0/24 ${network})";
     fi
 
     mongo1=$(docker service create --name mongo-1 --replicas 1 --network ${NETWORK} \
