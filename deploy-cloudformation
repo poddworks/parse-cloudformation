@@ -15,6 +15,7 @@ remove() {
 }
 
 run() {
+    _print_banner_message "Creating CloudFormation Stack"
     aws cloudformation create-stack --stack-name ${stack_name} \
         --template-body ${template_body} \
         --parameters ParameterKey=Region,ParameterValue=${region} \
@@ -30,27 +31,56 @@ run() {
 
     aws cloudformation wait stack-create-complete --stack-name ${stack_name}
 
-    # Execute composed ELB register command
-    eval $(aws cloudformation describe-stacks --stack-name ${stack_name} | jq -r '.Stacks | .[0].Outputs | .[] | select(.OutputKey | contains("RegisterELBCommand")) | .OutputValue')
-
+    _print_banner_message "Setup Docker Engine Swarm Cluster"
     # Sync available instances
     machine --confdir ${MACHINE_CONFDIR} aws --region ${region} config sync --vpc-id ${vpc_id} -f
 
-    nodes=$(aws cloudformation describe-stacks --stack-name ${stack_name} | jq -r '.Stacks | .[0].Outputs | .[] | select(.OutputKey | contains("Manager")) | .OutputValue')
+    # Use one of the instance to issue docker swarm command
+    nodes=$(_get_nodes)
     eval $(machine --confdir ${MACHINE_CONFDIR} env ${nodes[0]})
 
     # Create Swarm Mode cluster from provided nodes
     deploy-swarm-cluster setup --cert ${CERT} --network ${NETWORK} ${nodes}
 
+    _print_banner_message "Deploy Mongo Cluster Members"
     # Deploy mongodb service
     deploy-mongo-repl go --network ${NETWORK} --replSet ${REPL_SET}
 
+    _print_banner_message "Configure Mongo Replication Cluster"
     # Setup mongodb replication cluster
     deploy-mongo-repl setup --network ${NETWORK} --replSet ${REPL_SET}
 }
 
 show() {
     aws cloudformation describe-stacks --stack-name ${stack_name} | jq -r '.Stacks | .[0].Outputs | .[]'
+}
+
+_print_banner_message() {
+    cat <<EOF
+
+------------------------------------
+${1}
+------------------------------------
+
+EOF
+}
+
+_register_elb() {
+    # Output ELB register command
+    echo $(aws cloudformation describe-stacks --stack-name ${stack_name} | jq -r '.Stacks | .[0].Outputs | .[] | select(.OutputKey | contains("RegisterELBCommand")) | .OutputValue')
+}
+
+_get_nodes() {
+    # Output provisioned nodes
+    echo $(aws cloudformation describe-stacks --stack-name ${stack_name} | jq -r '.Stacks | .[0].Outputs | .[] | select(.OutputKey | contains("Manager")) | .OutputValue')
+}
+
+_help() {
+    echo "deploy-cloudformation [run <product_name>|register|rm|show|help] --cert <key> --network <overlay_network> --replSet <replica_set_name>"
+}
+
+_help_and_exit() {
+    exit_code=${1:-0}; _help; exit ${1}
 }
 
 while [ $# -gt 0 ]; do
@@ -70,17 +100,18 @@ while [ $# -gt 0 ]; do
         run)
             shift 1; func="run"; PRODUCT=$1; shift 1 ;;
 
+        register)
+            shift 1; func="register"; shift 1 ;;
+
         show)
             shift 1; func="show"; ;;
 
         -h|--help|help)
-            echo "deploy-cloudformation [run <product_name>|rm|show|help] --cert <key> --network <overlay_network> --replSet <replica_set_name>"
-            exit 0 ;;
+            _help_and_exit ;;
 
         *)
             echo "Refuse to process $@; Unexpected arguments/flag"
-            echo "deploy-cloudformation [run <product_name>|rm|show|help] --cert <key> --network <overlay_network> --replSet <replica_set_name>"
-            exit 1 ;;
+            _help_and_exit 1 ;;
     esac
 done
 
@@ -89,10 +120,11 @@ case ${func} in
         remove; exit 0 ;;
     run)
         run; exit 0 ;;
+    register)
+        _register_elb; exit 0 ;;
     show)
         show; exit 0 ;;
     *)
         echo "Please specify an action!"
-        echo "deploy-cloudformation [run <product_name>|rm|show|help] --cert <key> --network <overlay_network> --replSet <replica_set_name>"
-        exit 1 ;;
+        _help_and_exit 1 ;;
 esac
