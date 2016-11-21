@@ -31,7 +31,7 @@ build() {
 
     # Wait for it to complete, by sleeping
     # TODO: how do we know it is ready?
-    sleep 120
+    sleep 60
 
     echo "Create mongo-1: ${mongo1}"
     echo "Create mongo-2: ${mongo2}"
