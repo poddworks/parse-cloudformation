@@ -32,8 +32,14 @@ setup() {
     fi
 }
 
-MACHINE_CONFDIR=~/.machine
-MACHINE_USER=ubuntu
+_help() {
+    echo "deploy-swarm-cluster [setup|help] --cert <key> --network <overlay_network> [node ...]"
+}
+
+_help_and_exit() {
+    exit_code=${1:-0}; _help; exit ${1}
+}
+
 while [ $# -gt 0 ]; do
     case ${1} in
         --cert)
@@ -52,19 +58,25 @@ while [ $# -gt 0 ]; do
             shift 1; func="setup"; ;;
 
         -h|--help|help)
-            echo "deploy-swarm-cluster [setup|help] --cert <key> --network <overlay_network> [node ...]"
-            exit 0 ;;
+            _help_and_exit ;;
 
         *)
             NODES="${NODES} ${1}"; shift 1 ;;
     esac
 done
 
+if [ -z ${MACHINE_CONFDIR} ]; then
+    MACHINE_CONFDIR=~/.machine
+fi
+
+if [ -z ${MACHINE_USER} ]; then
+    MACHINE_USER=ubuntu
+fi
+
 case ${func} in
     setup)
         setup ${CERT} ${NETWORK} ${NODES}; exit 0 ;;
     *)
         echo "Please specify an action!"
-        echo "deploy-swarm-cluster [setup|help] --cert <key> --network <overlay_network> [node ...]"
-        exit 1
+        _help_and_exit 1 ;;
 esac

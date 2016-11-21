@@ -55,6 +55,14 @@ setup() {
     docker service rm mongo-repl-onetime
 }
 
+_help() {
+    echo "deploy-mongo-repl [go|setup|rm|help] --network <overlay_network> --replSet <replica_set_name>"
+}
+
+_help_and_exit() {
+    exit_code=${1:-0}; _help; exit ${1}
+}
+
 while [ $# -gt 0 ]; do
     case ${1} in
         --network)
@@ -73,13 +81,11 @@ while [ $# -gt 0 ]; do
             shift 1; func="setup"; ;;
 
         -h|--help|help)
-            echo "deploy-mongo-repl [go|setup|rm|help] --network <overlay_network> --replSet <replica_set_name>"
-            exit 0 ;;
+            _help_and_exit ;;
 
         *)
             echo "Refuse to process $@; Unexpected arguments/flag"
-            echo "deploy-mongo-repl [go|setup|rm|help] --network <overlay_network> --replSet <replica_set_name>"
-            exit 1 ;;
+            _help_and_exit 1 ;;
     esac
 done
 
@@ -92,6 +98,5 @@ case ${func} in
         setup; exit 0 ;;
     *)
         echo "Please specify an action!"
-        echo "deploy-mongo-repl [go|setup|rm|help] --network <overlay_network> --replSet <replica_set_name>"
-        exit 1 ;;
+        _help_and_exit 1 ;;
 esac
