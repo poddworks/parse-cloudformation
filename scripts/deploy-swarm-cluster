@@ -32,6 +32,8 @@ setup() {
     fi
 }
 
+MACHINE_CONFDIR=~/.machine
+MACHINE_USER=ubuntu
 while [ $# -gt 0 ]; do
     case ${1} in
         --cert)
@@ -39,6 +41,12 @@ while [ $# -gt 0 ]; do
 
         --network)
             shift 1; NETWORK=$1; shift 1 ;;
+
+        --uset)
+            shift 1; MACHINE_USER=$1; shift 1 ;;
+
+        --confdir)
+            shift 1; MACHINE_CONFDIR=$1; shift 1 ;;
 
         setup)
             shift 1; func="setup"; ;;
