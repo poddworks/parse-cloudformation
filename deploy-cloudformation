@@ -117,7 +117,18 @@ done
 
 case ${func} in
     rm)
-        remove; exit 0 ;;
+        exist=$(aws cloudformation describe-stacks --stack-name ${stack_name} &>/dev/null && echo "yes" || echo "no")
+        if [ ${exist} = "no" ]; then
+            echo "nothing to remove"
+        else
+            echo -e "\nYou are about to destroy CloudFormation stack ${stack_name}\n"
+            read -p "Repeat the name to confirm your action: " challenge
+            case ${challenge} in
+                ${stack_name}) echo "running..."; remove; echo "done"; ;;
+                *) echo "canceled" ;;
+            esac
+        fi
+        exit 0 ;;
     run)
         run; exit 0 ;;
     register)
